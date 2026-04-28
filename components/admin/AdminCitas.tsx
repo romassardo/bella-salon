@@ -61,9 +61,14 @@ export function AdminCitas({ citas }: { citas: Cita[] }) {
 
   const counts = useMemo(() => {
     const today = citas.filter((c) => c.estado !== 'cancelada' && isToday(c.fecha_hora)).length;
-    const upcoming = citas.filter((c) => c.estado !== 'cancelada' && new Date(c.fecha_hora) >= now).length;
+    const upcoming = citas.filter(
+      (c) => c.estado !== 'cancelada' && new Date(c.fecha_hora) >= now
+    ).length;
     const cancelled = citas.filter((c) => c.estado === 'cancelada').length;
-    return { today, upcoming, cancelled, total: citas.length };
+    const ingresosHoy = citas
+      .filter((c) => c.estado !== 'cancelada' && isToday(c.fecha_hora))
+      .reduce((acc, c) => acc + (c.servicios?.precio ?? 0), 0);
+    return { today, upcoming, cancelled, total: citas.length, ingresosHoy };
   }, [citas, now]);
 
   async function cancelCita(id: string) {
@@ -81,11 +86,12 @@ export function AdminCitas({ citas }: { citas: Cita[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Stat label="Hoy" value={counts.today} />
         <Stat label="Próximas" value={counts.upcoming} />
         <Stat label="Canceladas" value={counts.cancelled} />
         <Stat label="Total" value={counts.total} />
+        <Stat label="Ingresos hoy" value={fmtPrice(counts.ingresosHoy)} />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -169,7 +175,7 @@ export function AdminCitas({ citas }: { citas: Cita[] }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="border-2 border-[var(--color-ink)] bg-white p-4">
       <div className="text-xs uppercase tracking-wider text-[var(--color-ink)]/60">{label}</div>
