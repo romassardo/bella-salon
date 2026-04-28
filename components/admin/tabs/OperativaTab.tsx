@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   LineChart,
   Line,
@@ -28,7 +28,8 @@ export function OperativaTab({
   citas: CitaDashboard[];
   clientes: ClienteDashboard[];
 }) {
-  const now = new Date();
+  const nowRef = useRef(new Date());
+  const now = nowRef.current;
 
   const activas = useMemo(
     () => citas.filter((c) => c.estado !== 'cancelada'),
