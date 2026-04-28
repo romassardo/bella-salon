@@ -127,7 +127,12 @@ export function FinancieraTab({ citas }: { citas: CitaDashboard[] }) {
                   tick={{ fontSize: 11 }}
                   tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
                 />
-                <Tooltip formatter={(v) => fmtPrice(Number(v))} />
+                <Tooltip
+                  formatter={(v) => fmtPrice(Number(v))}
+                  contentStyle={{ border: '2px solid var(--color-ink)', borderRadius: 0 }}
+                  itemStyle={{ color: 'var(--color-ink)' }}
+                  labelStyle={{ color: 'var(--color-ink)', fontWeight: 600 }}
+                />
                 <Bar
                   dataKey="ingreso"
                   fill="var(--color-acid)"
