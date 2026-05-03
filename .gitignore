@@ -50,3 +50,5 @@ supabase/.temp
 
 # claude code (sesiones locales, agentes, settings personales)
 .claude/
+
+.vercel
