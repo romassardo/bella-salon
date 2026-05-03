@@ -19,7 +19,6 @@ Salón Bella es un MVP de reservas online para un salón de belleza ficticio. El
 |---|---|---|
 | Frontend | Next.js 15 (App Router) | Interfaz web, SSR, API routes |
 | Estilos | Tailwind CSS v4 + shadcn/ui | Design system, componentes |
-| Animaciones | Framer Motion + GSAP + Lenis | Microinteracciones, scroll suave |
 | Base de datos | Supabase (PostgreSQL) | Datos, RLS, RPCs, Auth |
 | Orquestación | n8n Cloud v2.17.5 | Automatización de flujos y webhooks |
 | IA | OpenAI GPT-4o (vía n8n) | Asistente conversacional |
@@ -126,6 +125,16 @@ Salón Bella es un MVP de reservas online para un salón de belleza ficticio. El
 | payload | jsonb | Datos del momento del error |
 | created_at | timestamptz | Registro |
 
+#### `profiles`
+| Campo | Tipo | Descripción |
+|---|---|---|
+| user_id | uuid PK FK → auth.users | Identificador del usuario de Supabase Auth |
+| role | text | `owner` (dueña) / `staff` (empleado) |
+| nombre | text | Nombre visible en el panel |
+| created_at | timestamptz | Registro |
+
+Determina qué tabs del dashboard puede ver cada usuario. La dueña (`owner`) tiene acceso completo; los empleados (`staff`) solo ven la tab de Citas y pueden cancelar turnos.
+
 ### Funciones RPC
 
 ```sql
@@ -156,6 +165,7 @@ citas_no_overlap_trigger
 | `clientes` | Authenticated | Service role | Service role |
 | `citas` | Authenticated | Service role | Service role |
 | `errors_log` | Authenticated | Service role (bypass RLS) | — |
+| `profiles` | Authenticated (propio) | Service role | Service role |
 
 ---
 
@@ -219,30 +229,43 @@ Error Trigger (cualquier nodo falla)
 | Ruta | URL producción | Tipo | Descripción |
 |---|---|---|---|
 | `/` | https://salon-bella-eight.vercel.app | Static | Landing: Hero, catálogo (6 servicios), formulario de reserva 4 pasos, chat Bella, footer |
-| `/admin` | https://salon-bella-eight.vercel.app/admin | Dynamic (SSR) | Dashboard administrativo (requiere login) |
-| `/admin/login` | https://salon-bella-eight.vercel.app/admin/login | Static | Login con Supabase Auth |
+| `/admin` | https://salon-bella-eight.vercel.app/admin | Dynamic (SSR) | Dashboard administrativo (requiere login y perfil en `profiles`) |
+| `/admin/login` | https://salon-bella-eight.vercel.app/admin/login | Static | Login + modo "Olvidé mi contraseña" (reset por email) |
+| `/admin/reset-password` | https://salon-bella-eight.vercel.app/admin/reset-password | Static | Callback de Supabase para setear nueva contraseña |
 
 ### Dashboard administrativo
 
 Acceso: https://salon-bella-eight.vercel.app/admin  
-Autenticación: Supabase Auth (email + contraseña). Solo usuarios registrados en el proyecto Supabase pueden ingresar.
+Autenticación: Supabase Auth (email + contraseña). El usuario debe existir en la tabla `profiles`; si no tiene perfil es redirigido al login.
 
-El dashboard tiene tres secciones organizadas en tabs:
+El dashboard tiene tabs que varían según el rol del usuario:
 
-#### Tab Financiera
-- **Gráfico de barras** (Recharts): ingresos por servicio en los últimos 30 días, con tooltip de valor exacto en ARS
-- **Tabla de desglose**: servicio, cantidad de citas, precio unitario e ingreso total
-- **Stat card**: ingresos del día actual
+| Tab | `owner` | `staff` |
+|---|---|---|
+| Citas | ✅ | ✅ |
+| Operativa | ✅ | ❌ |
+| Financiera | ✅ | ❌ |
+| Usuarios | ✅ | ❌ |
 
-#### Tab Operativa
+#### Tab Citas (todos los roles)
+- Listado completo de citas con: nombre del cliente, servicio, fecha/hora, canal de reserva y estado (`confirmada` / `cancelada` / `completada`)
+- **Acciones por cita**: marcar como completada o cancelar (actualiza `estado` en Supabase en tiempo real)
+- Filtros por estado y ordenamiento por fecha
+
+#### Tab Operativa (solo owner)
 - **Gráfico de línea** (Recharts): citas por día en los últimos 30 días
 - **Ranking de servicios**: los más solicitados con barra de progreso proporcional
 - **Desglose por canal**: proporción de reservas vía formulario vs asistente IA
 
-#### Lista de citas
-- Listado completo de citas con: nombre del cliente, servicio, fecha/hora, canal de reserva y estado (`confirmada` / `cancelada` / `completada`)
-- **Acciones por cita**: marcar como completada o cancelar (actualiza `estado` en Supabase en tiempo real)
-- Filtros por estado y ordenamiento por fecha
+#### Tab Financiera (solo owner)
+- **Gráfico de barras** (Recharts): ingresos por servicio con selector de mes/año
+- **Tabla de desglose**: servicio, cantidad de citas, ingreso y % del total
+- **Stat cards**: ingresos del mes, ticket promedio, citas cobradas, monto perdido por cancelaciones
+
+#### Tab Usuarios (solo owner)
+- Listado de usuarios con acceso al panel (email, nombre, rol, fecha de creación)
+- **Crear empleado**: formulario email + nombre. El sistema crea el usuario en Supabase Auth con contraseña temporal generada (`Bella-XXXX`) y la muestra al dueño para compartirla. El empleado puede cambiarla con "Olvidé mi contraseña".
+- **Eliminar empleado**: elimina el usuario de Auth y su perfil (no aplica a `owner`)
 
 ### API Routes (proxy a n8n)
 
@@ -251,15 +274,21 @@ El dashboard tiene tres secciones organizadas en tabs:
 | `/api/chat` | POST | Proxy firmado (HMAC SHA-256) al webhook `/chat` de n8n |
 | `/api/reservar` | POST | Proxy firmado al webhook `/reserva` de n8n + validación Zod |
 | `/api/horarios` | GET | Consulta directa a RPC `get_horarios_disponibles` de Supabase |
-| `/api/admin/citas/[id]/cancel` | PATCH | Actualiza `estado = 'cancelada'` en Supabase (requiere sesión) |
+| `/api/admin/citas/[id]/cancel` | PATCH | Cancela cita (requiere sesión + perfil en `profiles`) |
+| `/api/admin/users` | GET | Lista usuarios con acceso (solo `owner`) |
+| `/api/admin/users` | POST | Crea usuario staff con contraseña temporal (solo `owner`) |
+| `/api/admin/users/[id]` | DELETE | Elimina usuario staff (solo `owner`, no aplica a `owner`) |
 
 ### Seguridad
 
-- Headers HTTP: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`
+- Headers HTTP: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`
 - Webhook HMAC: `x-signature = HMAC-SHA256(body, N8N_WEBHOOK_SECRET)` verificado en n8n
-- Validación Zod en todos los API routes del lado servidor
-- Variables server-only (`SUPABASE_SERVICE_ROLE_KEY`, `N8N_WEBHOOK_SECRET`) nunca expuestas al cliente
+- Validación Zod en todos los API routes del lado servidor (incluyendo UUID en rutas dinámicas)
+- Variables server-only en `lib/env.server.ts` (con `import 'server-only'`): `SUPABASE_SERVICE_ROLE_KEY`, `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET` — nunca bundleadas en el cliente
+- Variables públicas en `lib/env.ts`: solo `NEXT_PUBLIC_*`
+- Control de acceso por roles: `profiles.role` verificado server-side en cada API route protegida
 - RLS de Supabase como segunda línea de defensa
+- Recuperación de contraseña: flujo nativo de Supabase (`resetPasswordForEmail`) con redirect a `/admin/reset-password`
 
 ---
 
@@ -280,7 +309,7 @@ El mail que recibe el cliente incluye:
 |---|---|
 | Vercel | Proyecto `salon-bella`, team `rodrigos-projects-371b3e24` |
 | GitHub | `romassardo/bella-salon` — push a `main` → deploy automático |
-| Next.js | 15.3.9 (actualizado desde 15.1.7 por CVE-2025-29927) |
+| Next.js | 15.5.15 (actualizado desde 15.1.7 por CVE-2025-29927 y posteriores) |
 | Env vars en Vercel | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_APP_URL`, `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET` |
 
 ---
