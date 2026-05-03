@@ -216,11 +216,33 @@ Error Trigger (cualquier nodo falla)
 
 ### Páginas
 
-| Ruta | Tipo | Descripción |
-|---|---|---|
-| `/` | Static | Landing: Hero, catálogo (6 servicios), formulario de reserva 4 pasos, chat Bella, footer |
-| `/admin` | Dynamic (SSR) | Dashboard: tabs Financiera, Operativa, lista de citas + acciones |
-| `/admin/login` | Static | Login con Supabase Auth |
+| Ruta | URL producción | Tipo | Descripción |
+|---|---|---|---|
+| `/` | https://salon-bella-eight.vercel.app | Static | Landing: Hero, catálogo (6 servicios), formulario de reserva 4 pasos, chat Bella, footer |
+| `/admin` | https://salon-bella-eight.vercel.app/admin | Dynamic (SSR) | Dashboard administrativo (requiere login) |
+| `/admin/login` | https://salon-bella-eight.vercel.app/admin/login | Static | Login con Supabase Auth |
+
+### Dashboard administrativo
+
+Acceso: https://salon-bella-eight.vercel.app/admin  
+Autenticación: Supabase Auth (email + contraseña). Solo usuarios registrados en el proyecto Supabase pueden ingresar.
+
+El dashboard tiene tres secciones organizadas en tabs:
+
+#### Tab Financiera
+- **Gráfico de barras** (Recharts): ingresos por servicio en los últimos 30 días, con tooltip de valor exacto en ARS
+- **Tabla de desglose**: servicio, cantidad de citas, precio unitario e ingreso total
+- **Stat card**: ingresos del día actual
+
+#### Tab Operativa
+- **Gráfico de línea** (Recharts): citas por día en los últimos 30 días
+- **Ranking de servicios**: los más solicitados con barra de progreso proporcional
+- **Desglose por canal**: proporción de reservas vía formulario vs asistente IA
+
+#### Lista de citas
+- Listado completo de citas con: nombre del cliente, servicio, fecha/hora, canal de reserva y estado (`confirmada` / `cancelada` / `completada`)
+- **Acciones por cita**: marcar como completada o cancelar (actualiza `estado` en Supabase en tiempo real)
+- Filtros por estado y ordenamiento por fecha
 
 ### API Routes (proxy a n8n)
 
