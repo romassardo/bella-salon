@@ -19,7 +19,7 @@ export default function AdminLoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError('Email o contraseña incorrectos.');
       return;
     }
     router.push('/admin');

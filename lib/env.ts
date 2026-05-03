@@ -1,16 +1,16 @@
 import { z } from 'zod';
 
 const serverSchema = z.object({
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(20).optional(),
-  N8N_WEBHOOK_URL: z.string().url().optional(),
-  N8N_WEBHOOK_SECRET: z.string().min(16).optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
+  N8N_WEBHOOK_URL: z.string().url(),
+  N8N_WEBHOOK_SECRET: z.string().min(16),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_OWNER_CHAT_ID: z.string().optional(),
 });
 
 const clientSchema = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(20).optional(),
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(20),
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 });
 

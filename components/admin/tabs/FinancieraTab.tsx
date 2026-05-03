@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -25,11 +25,12 @@ function fmtPrice(n: number) {
 }
 
 export function FinancieraTab({ citas }: { citas: CitaDashboard[] }) {
-  const now = new Date();
+  const nowRef = useRef(new Date());
+  const now = nowRef.current;
   const [mes, setMes] = useState(now.getMonth());
   const [anio, setAnio] = useState(now.getFullYear());
 
-  const anios = Array.from({ length: 3 }, (_, i) => now.getFullYear() - i);
+  const anios = useMemo(() => Array.from({ length: 3 }, (_, i) => now.getFullYear() - i), [now]);
 
   const filtradas = useMemo(
     () =>
