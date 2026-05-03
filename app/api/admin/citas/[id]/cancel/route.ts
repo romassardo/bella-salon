@@ -2,16 +2,16 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'romassardo@gmail.com';
-
 export async function PATCH(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  if (!user || user.email !== ADMIN_EMAIL) {
+  const { data: profile } = await supabase.from('profiles').select('role').eq('user_id', user.id).single();
+  if (!profile) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { clientEnv, serverEnv } from '@/lib/env';
+import { clientEnv } from '@/lib/env';
+import { serverEnv } from '@/lib/env.server';
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 

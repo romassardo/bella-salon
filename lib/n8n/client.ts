@@ -1,4 +1,4 @@
-import { serverEnv } from '@/lib/env';
+import { serverEnv } from '@/lib/env.server';
 
 export type N8nResult<T> = { ok: true; data: T } | { ok: false; error: string };
 

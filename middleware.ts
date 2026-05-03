@@ -22,8 +22,9 @@ export async function middleware(req: NextRequest) {
 
   const isAdminPath = req.nextUrl.pathname.startsWith('/admin');
   const isLoginPath = req.nextUrl.pathname === '/admin/login';
+  const isResetPath = req.nextUrl.pathname === '/admin/reset-password';
 
-  if (isAdminPath && !isLoginPath && !user) {
+  if (isAdminPath && !isLoginPath && !isResetPath && !user) {
     return NextResponse.redirect(new URL('/admin/login', req.url));
   }
 

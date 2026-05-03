@@ -25,7 +25,7 @@ export default async function AdminPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/admin/login');
 
-  const [{ data: citas, error }, { data: clientes }] = await Promise.all([
+  const [{ data: citas, error }, { data: clientes }, { data: profile }] = await Promise.all([
     supabase
       .from('citas')
       .select(
@@ -36,7 +36,12 @@ export default async function AdminPage() {
       .order('fecha_hora', { ascending: true })
       .returns<CitaRow[]>(),
     supabase.from('clientes').select('id, created_at').returns<ClienteRow[]>(),
+    supabase.from('profiles').select('role').eq('user_id', user.id).single(),
   ]);
+
+  if (!profile) redirect('/admin/login');
+
+  const role = profile.role as 'owner' | 'staff';
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)]">
@@ -59,7 +64,7 @@ export default async function AdminPage() {
             Error cargando citas: {error.message}
           </div>
         )}
-        <AdminDashboard citas={citas ?? []} clientes={clientes ?? []} />
+        <AdminDashboard citas={citas ?? []} clientes={clientes ?? []} role={role} />
       </main>
     </div>
   );
