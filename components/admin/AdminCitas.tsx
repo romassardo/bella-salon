@@ -99,9 +99,10 @@ export function AdminCitas({ citas }: { citas: Cita[] }) {
           <button
             key={f}
             onClick={() => setFilter(f)}
+            aria-pressed={filter === f}
             className={`px-3 py-1.5 text-xs uppercase tracking-wider border-2 border-[var(--color-ink)] transition ${
               filter === f
-                ? 'bg-[var(--color-ink)] text-[var(--color-paper)]'
+                ? 'bg-[var(--color-ink)] text-[var(--color-paper)] font-semibold shadow-[inset_0_-3px_0_var(--color-acid)]'
                 : 'bg-white text-[var(--color-ink)] hover:bg-[var(--color-acid)]/20'
             }`}
           >

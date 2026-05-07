@@ -5,6 +5,9 @@ import { BELLA_QUICK_PROMPTS } from '@/lib/ai/prompt';
 
 type Role = 'user' | 'bot';
 type Msg = { role: Role; text: string };
+type GreetingPhase = 'idle' | 'typing' | 'writing' | 'done';
+
+const GREETING_TEXT = '¡Hola! Soy Bella ✨ ¿En qué te ayudo hoy?';
 
 function newSessionId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
@@ -13,12 +16,13 @@ function newSessionId() {
 
 export function Assistant() {
   const sessionId = useMemo(() => newSessionId(), []);
-  const [messages, setMessages] = useState<Msg[]>([
-    { role: 'bot', text: '¡Hola! Soy Bella ✨ ¿En qué te ayudo hoy?' },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [greetingPhase, setGreetingPhase] = useState<GreetingPhase>('idle');
+  const [greetingText, setGreetingText] = useState('');
+  const [clockText, setClockText] = useState('--:--');
   const bodyRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -27,29 +31,84 @@ export function Assistant() {
     requestAnimationFrame(() => {
       if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
     });
-  }, [messages, typing, showConfirm]);
+  }, [messages, typing, showConfirm, greetingText]);
 
   useEffect(() => {
-    if (typing || messages.length <= 1) return;
+    if (typing || greetingPhase !== 'done' || messages.length === 0) return;
     inputRef.current?.focus({ preventScroll: true });
-  }, [typing, messages.length]);
+  }, [typing, greetingPhase, messages.length]);
+
+  useEffect(() => {
+    const tick = () => {
+      const d = new Date();
+      const h = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      setClockText(`${h}:${m}`);
+    };
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const el = infoRef.current;
     if (!el) return;
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const startGreeting = () => {
+      const reduce =
+        typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+      if (reduce) {
+        setGreetingPhase('done');
+        setMessages([{ role: 'bot', text: GREETING_TEXT }]);
+        return;
+      }
+
+      setGreetingPhase('typing');
+      timeouts.push(
+        setTimeout(() => {
+          setGreetingPhase('writing');
+          let i = 0;
+          intervalId = setInterval(() => {
+            i += 1;
+            setGreetingText(GREETING_TEXT.slice(0, i));
+            if (i >= GREETING_TEXT.length) {
+              if (intervalId) clearInterval(intervalId);
+              intervalId = null;
+              timeouts.push(
+                setTimeout(() => {
+                  setMessages([{ role: 'bot', text: GREETING_TEXT }]);
+                  setGreetingPhase('done');
+                  setGreetingText('');
+                }, 300),
+              );
+            }
+          }, 28);
+        }, 750),
+      );
+    };
+
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting) {
             el.classList.add('in');
             obs.disconnect();
+            startGreeting();
           }
         });
       },
       { threshold: 0.15 },
     );
     obs.observe(el);
-    return () => obs.disconnect();
+    return () => {
+      obs.disconnect();
+      timeouts.forEach(clearTimeout);
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
   const send = async (text: string) => {
@@ -133,10 +192,15 @@ export function Assistant() {
           </div>
         </div>
 
-        <div className="phone-shell">
+        <div className="phone-wrap">
+          <div className="phone-cta-badge" aria-hidden="true">
+            <span>Probalo, es real</span>
+            <span className="phone-cta-arrow">↓</span>
+          </div>
+          <div className="phone-shell">
           <div className="phone-screen">
             <div className="phone-notch">
-              <span>09:41</span>
+              <span suppressHydrationWarning>{clockText}</span>
               <div className="dots">
                 <span />
                 <span />
@@ -151,12 +215,18 @@ export function Assistant() {
               </div>
             </div>
             <div className="chat-body" ref={bodyRef}>
+              {greetingPhase === 'writing' && (
+                <div className="bubble bot writing">
+                  {greetingText}
+                  <span className="caret" aria-hidden="true" />
+                </div>
+              )}
               {messages.map((m, i) => (
                 <div key={i} className={`bubble ${m.role}`}>
                   {m.text}
                 </div>
               ))}
-              {typing && (
+              {(typing || greetingPhase === 'typing') && (
                 <div className="bubble bot" style={{ padding: '12px 14px' }}>
                   <div className="typing">
                     <span />
@@ -196,7 +266,7 @@ export function Assistant() {
                   </div>
                 </div>
               )}
-              {messages.length <= 1 && !typing && (
+              {greetingPhase === 'done' && messages.length <= 1 && !typing && (
                 <div className="quick-prompts">
                   {BELLA_QUICK_PROMPTS.map((q) => (
                     <button
@@ -246,6 +316,7 @@ export function Assistant() {
                 </svg>
               </button>
             </form>
+          </div>
           </div>
         </div>
       </div>

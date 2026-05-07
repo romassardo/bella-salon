@@ -1,7 +1,7 @@
 # Guion Video Demo — Salón Bella
 
-**Duración objetivo:** 7–8 minutos  
-**Fecha:** 2026-05-03  
+**Duración objetivo:** 8–9 minutos  
+**Fecha:** 2026-05-06  
 **URL:** https://salon-bella-eight.vercel.app
 
 ---
@@ -14,9 +14,9 @@
 | Landing y catálogo | 0:45 – 1:45 |
 | Reserva por formulario | 1:45 – 3:15 |
 | Asistente IA (Bella) | 3:15 – 5:00 |
-| Dashboard admin | 5:00 – 6:15 |
-| n8n + Supabase (backstage) | 6:15 – 7:15 |
-| Cierre | 7:15 – 7:45 |
+| Dashboard admin (login + tabs + usuarios) | 5:00 – 7:00 |
+| n8n + Supabase (backstage) | 7:00 – 8:00 |
+| Cierre | 8:00 – 8:30 |
 
 ---
 
@@ -101,27 +101,53 @@
 
 ---
 
-## Segmento 5 — Dashboard admin (5:00 – 6:15)
+## Segmento 5 — Dashboard admin (5:00 – 7:00)
 
 **Qué mostrar:** navegar a https://salon-bella-eight.vercel.app/admin/login
 
-> "El panel administrativo requiere login. La dueña entra con su email y contraseña de Supabase Auth."
+> "El panel administrativo requiere login con Supabase Auth. Hay dos roles: la **dueña** (`owner`) ve todo, y los **empleados** (`staff`) solo ven la lista de citas para gestionarlas."
 
-- Hacer login con las credenciales del admin
+- Mostrar la pantalla de login y, brevemente, el link **"Olvidé mi contraseña"**
 
-> "El dashboard tiene tres secciones."
+> "Si un empleado olvida su clave, desde acá pide un reset y Supabase le manda el mail con el link a `/admin/reset-password` para definir una nueva."
 
-- **Tab Financiera:** mostrar el gráfico de barras de ingresos y el desglose por servicio
-- **Tab Operativa:** mostrar el gráfico de citas por día y el ranking de servicios más pedidos
-- **Lista de citas:** mostrar las citas recientes con cliente, servicio, fecha y estado
+- Hacer login con las credenciales de la dueña
 
-> "Desde acá la dueña puede marcar citas como completadas o cancelarlas. Todo actualiza en tiempo real en Supabase."
+> "Como entré como dueña, veo las cuatro tabs: Citas, Operativa, Financiera y Usuarios."
+
+### Tab Citas
+
+- **Lista de citas:** mostrar las citas recientes con cliente, servicio, fecha, canal y estado
+
+> "Desde acá se puede marcar una cita como completada o cancelarla. Todo actualiza en tiempo real en Supabase."
 
 - Mostrar el menú de acciones de una cita (cancelar / completar)
 
+### Tab Operativa
+
+- Mostrar el gráfico de citas por día (últimos 30 días), el ranking de servicios más pedidos y el desglose por canal (formulario vs IA)
+
+### Tab Financiera
+
+- Mostrar el gráfico de barras de ingresos por servicio, las stat cards (ingresos del mes, ticket promedio, citas cobradas, monto perdido) y la tabla de desglose
+
+### Tab Usuarios (solo dueña)
+
+> "La dueña también administra los accesos al panel desde la tab Usuarios."
+
+- Mostrar el listado: email, nombre, rol y fecha de creación
+- Hacer click en **"Crear empleado"**, completar email + nombre y enviar
+
+> "Cuando creo un empleado, el sistema genera un usuario en Supabase Auth con una contraseña temporal del estilo `Bella-XXXX` y me la muestra una sola vez para que se la pase al empleado. La primera vez que entra, usa 'Olvidé mi contraseña' para definir la suya."
+
+- Resaltar la contraseña temporal mostrada en pantalla
+- (Opcional) Mostrar el botón eliminar de un empleado de prueba
+
+> "El backend valida en cada request que el usuario tenga rol `owner` antes de permitir crear o eliminar usuarios — no alcanza con el chequeo del frontend."
+
 ---
 
-## Segmento 6 — Backstage: n8n y Supabase (6:15 – 7:15)
+## Segmento 6 — Backstage: n8n y Supabase (7:00 – 8:00)
 
 **Qué mostrar:** abrir n8n en otra pestaña (rodfloyd75.app.n8n.cloud).
 
@@ -142,7 +168,7 @@
 
 ---
 
-## Segmento 7 — Cierre (7:15 – 7:45)
+## Segmento 7 — Cierre (8:00 – 8:30)
 
 > "En resumen: Salón Bella reemplaza la gestión manual por un sistema completamente automatizado. El cliente puede reservar por formulario o por chat de IA, recibe confirmación por mail con archivo de calendario, y la dueña recibe la alerta por Telegram al instante."
 

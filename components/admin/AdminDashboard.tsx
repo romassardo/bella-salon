@@ -5,8 +5,9 @@ import { AdminCitas } from './AdminCitas';
 import { FinancieraTab } from './tabs/FinancieraTab';
 import { OperativaTab } from './tabs/OperativaTab';
 import { UsuariosTab } from './tabs/UsuariosTab';
+import { MiCuentaTab } from './tabs/MiCuentaTab';
 
-type Tab = 'citas' | 'operativa' | 'financiera' | 'usuarios';
+type Tab = 'citas' | 'operativa' | 'financiera' | 'usuarios' | 'cuenta';
 
 export type CitaDashboard = {
   id: string;
@@ -26,10 +27,12 @@ const OWNER_TABS: { key: Tab; label: string }[] = [
   { key: 'operativa', label: 'Operativa' },
   { key: 'financiera', label: 'Financiera' },
   { key: 'usuarios', label: 'Usuarios' },
+  { key: 'cuenta', label: 'Mi cuenta' },
 ];
 
 const STAFF_TABS: { key: Tab; label: string }[] = [
   { key: 'citas', label: 'Citas' },
+  { key: 'cuenta', label: 'Mi cuenta' },
 ];
 
 export function AdminDashboard({
@@ -51,12 +54,13 @@ export function AdminDashboard({
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`px-5 py-2 text-xs uppercase tracking-[0.15em] font-medium transition ${
+            aria-current={tab === key ? 'page' : undefined}
+            className={`relative px-5 py-2 text-xs uppercase tracking-[0.15em] transition ${
               i < tabs.length - 1 ? 'border-r-2 border-[var(--color-ink)]' : ''
             } ${
               tab === key
-                ? 'bg-[var(--color-ink)] text-[var(--color-paper)]'
-                : 'bg-white text-[var(--color-ink)] hover:bg-[var(--color-acid)]/20'
+                ? 'bg-[var(--color-ink)] text-[var(--color-paper)] font-semibold shadow-[inset_0_-4px_0_var(--color-acid)]'
+                : 'bg-white text-[var(--color-ink)] font-medium hover:bg-[var(--color-acid)]/20'
             }`}
           >
             {label}
@@ -68,6 +72,7 @@ export function AdminDashboard({
       {tab === 'operativa' && role === 'owner' && <OperativaTab citas={citas} clientes={clientes} />}
       {tab === 'financiera' && role === 'owner' && <FinancieraTab citas={citas} />}
       {tab === 'usuarios' && role === 'owner' && <UsuariosTab />}
+      {tab === 'cuenta' && <MiCuentaTab role={role} />}
     </div>
   );
 }

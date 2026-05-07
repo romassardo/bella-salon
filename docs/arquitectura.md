@@ -1,7 +1,7 @@
 # Documento de Arquitectura — Salón Bella
 
 **Proyecto:** Módulo 3 — Proyecto Integrador  
-**Fecha:** 2026-05-03  
+**Fecha:** 2026-05-07  
 **URL producción:** https://salon-bella-eight.vercel.app  
 **Repositorio:** https://github.com/romassardo/bella-salon
 
@@ -17,15 +17,15 @@ Salón Bella es un MVP de reservas online para un salón de belleza ficticio. El
 
 | Capa | Tecnología | Rol |
 |---|---|---|
-| Frontend | Next.js 15 (App Router) | Interfaz web, SSR, API routes |
-| Estilos | Tailwind CSS v4 + shadcn/ui | Design system, componentes |
+| Frontend | Next.js 15 (App Router) | UI, SSR, API routes |
+| Estilos | Tailwind CSS v4 + CSS custom | Design system con CSS variables |
+| Gráficos | Recharts | Dashboard (Operativa, Financiera) |
 | Base de datos | Supabase (PostgreSQL) | Datos, RLS, RPCs, Auth |
-| Orquestación | n8n Cloud v2.17.5 | Automatización de flujos y webhooks |
+| Orquestación | n8n Cloud | Workflows y webhooks |
 | IA | OpenAI GPT-4o (vía n8n) | Asistente conversacional |
 | Notificaciones | Telegram Bot API | Alertas a la dueña |
 | Email | Gmail OAuth2 (vía n8n) | Confirmaciones y recordatorios |
-| Deploy | Vercel | Hosting serverless del frontend |
-| Stack swap | Claude Code (≠ Lovable), Telegram (≠ WhatsApp) | Mayor control técnico, sin costo de meta |
+| Deploy | Vercel | Hosting serverless |
 
 ---
 
@@ -133,7 +133,7 @@ Salón Bella es un MVP de reservas online para un salón de belleza ficticio. El
 | nombre | text | Nombre visible en el panel |
 | created_at | timestamptz | Registro |
 
-Determina qué tabs del dashboard puede ver cada usuario. La dueña (`owner`) tiene acceso completo; los empleados (`staff`) solo ven la tab de Citas y pueden cancelar turnos.
+Determina qué tabs del dashboard puede ver cada usuario. La dueña (`owner`) tiene acceso completo; los empleados (`staff`) ven Citas (con permiso para cancelar turnos) y Mi cuenta (para cambiar su propia contraseña).
 
 ### Funciones RPC
 
@@ -246,26 +246,13 @@ El dashboard tiene tabs que varían según el rol del usuario:
 | Operativa | ✅ | ❌ |
 | Financiera | ✅ | ❌ |
 | Usuarios | ✅ | ❌ |
+| Mi cuenta | ✅ | ✅ |
 
-#### Tab Citas (todos los roles)
-- Listado completo de citas con: nombre del cliente, servicio, fecha/hora, canal de reserva y estado (`confirmada` / `cancelada` / `completada`)
-- **Acciones por cita**: marcar como completada o cancelar (actualiza `estado` en Supabase en tiempo real)
-- Filtros por estado y ordenamiento por fecha
-
-#### Tab Operativa (solo owner)
-- **Gráfico de línea** (Recharts): citas por día en los últimos 30 días
-- **Ranking de servicios**: los más solicitados con barra de progreso proporcional
-- **Desglose por canal**: proporción de reservas vía formulario vs asistente IA
-
-#### Tab Financiera (solo owner)
-- **Gráfico de barras** (Recharts): ingresos por servicio con selector de mes/año
-- **Tabla de desglose**: servicio, cantidad de citas, ingreso y % del total
-- **Stat cards**: ingresos del mes, ticket promedio, citas cobradas, monto perdido por cancelaciones
-
-#### Tab Usuarios (solo owner)
-- Listado de usuarios con acceso al panel (email, nombre, rol, fecha de creación)
-- **Crear empleado**: formulario email + nombre. El sistema crea el usuario en Supabase Auth con contraseña temporal generada (`Bella-XXXX`) y la muestra al dueño para compartirla. El empleado puede cambiarla con "Olvidé mi contraseña".
-- **Eliminar empleado**: elimina el usuario de Auth y su perfil (no aplica a `owner`)
+- **Citas** (todos): listado con cliente, servicio, fecha, canal y estado; acciones de completar/cancelar; filtros y ordenamiento.
+- **Operativa** (owner): gráfico de citas por día (30 días), ranking de servicios y desglose por canal (formulario vs IA).
+- **Financiera** (owner): gráfico de barras de ingresos por servicio (con selector mes/año), stat cards (ingresos del mes, ticket promedio, citas cobradas, monto perdido) y tabla de desglose.
+- **Usuarios** (owner): listado de empleados; crear empleado genera usuario en Supabase Auth con contraseña temporal `Bella-XXXX` que se muestra una vez (el empleado la cambia desde Mi cuenta o con "Olvidé mi contraseña"); eliminar empleado borra de Auth y `profiles` (no aplica a `owner`).
+- **Mi cuenta** (todos): muestra email, nombre y rol del usuario logueado; permite cambiar su propia contraseña vía `supabase.auth.updateUser({ password })` (mínimo 8 caracteres, requiere confirmación).
 
 ### API Routes (proxy a n8n)
 
@@ -281,14 +268,12 @@ El dashboard tiene tabs que varían según el rol del usuario:
 
 ### Seguridad
 
-- Headers HTTP: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`
-- Webhook HMAC: `x-signature = HMAC-SHA256(body, N8N_WEBHOOK_SECRET)` verificado en n8n
-- Validación Zod en todos los API routes del lado servidor (incluyendo UUID en rutas dinámicas)
-- Variables server-only en `lib/env.server.ts` (con `import 'server-only'`): `SUPABASE_SERVICE_ROLE_KEY`, `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET` — nunca bundleadas en el cliente
-- Variables públicas en `lib/env.ts`: solo `NEXT_PUBLIC_*`
-- Control de acceso por roles: `profiles.role` verificado server-side en cada API route protegida
-- RLS de Supabase como segunda línea de defensa
-- Recuperación de contraseña: flujo nativo de Supabase (`resetPasswordForEmail`) con redirect a `/admin/reset-password`
+- **Headers HTTP**: X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy, Permissions-Policy, HSTS.
+- **Webhook HMAC**: `x-signature = HMAC-SHA256(body, N8N_WEBHOOK_SECRET)` verificado en n8n.
+- **Validación Zod** en todos los API routes (incluyendo UUID en rutas dinámicas).
+- **Aislamiento de secretos**: `lib/env.server.ts` (con `import 'server-only'`) para `SUPABASE_SERVICE_ROLE_KEY`, `N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET`; `lib/env.ts` solo expone `NEXT_PUBLIC_*`.
+- **RBAC**: `profiles.role` verificado server-side en cada API protegida; RLS de Supabase como segunda línea.
+- **Gestión de contraseña**: usuario logueado la cambia desde la tab "Mi cuenta" vía `supabase.auth.updateUser({ password })`; reset por olvido vía `resetPasswordForEmail` con redirect a `/admin/reset-password`.
 
 ---
 
@@ -318,14 +303,6 @@ El mail que recibe el cliente incluye:
 
 | Consigna | Implementación | Justificación |
 |---|---|---|
-| Lovable | Next.js 15 + Claude Code | Mayor control sobre UI, deploy en Vercel, animaciones con Framer Motion |
+| Lovable | Next.js 15 + Claude Code | Mayor control sobre UI, deploy en Vercel, animaciones CSS nativas |
 | WhatsApp API | Telegram Bot API | Sin costo, sin verificación de Meta, integración directa con n8n |
 | Email opcional | Email obligatorio (siempre al reservar) | Mejor UX: cliente recibe confirmación inmediata + recordatorio 24h |
-
-Todas las funcionalidades requeridas por la consigna están implementadas:
-- ✅ Formulario web con registro automático en Supabase
-- ✅ Asistente IA conversacional (GPT-4o vía n8n)
-- ✅ Notificación automática a la dueña (Telegram)
-- ✅ Recordatorio automático 24h antes (email vía cron n8n)
-- ✅ Dashboard administrativo con citas activas e historial
-- ✅ Manejo de estados: confirmada / cancelada / completada
