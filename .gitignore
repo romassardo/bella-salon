@@ -52,4 +52,13 @@ supabase/.temp
 .claude/
 docs/superpowers/
 
+# tests, configs y migraciones internas (no parte del entregable público)
+tests/
+playwright.config.ts
+vitest.config.ts
+playwright-report/
+test-results/
+supabase/
+n8n/workflows/README.md
+
 .vercel
