@@ -303,6 +303,6 @@ El mail que recibe el cliente incluye:
 
 | Consigna | Implementación | Justificación |
 |---|---|---|
-| Lovable | Next.js 15 + Claude Code | Mayor control sobre UI, deploy en Vercel, animaciones CSS nativas |
+| Lovable | Next.js 15 (App Router) | Mayor control sobre UI, deploy en Vercel, animaciones CSS nativas |
 | WhatsApp API | Telegram Bot API | Sin costo, sin verificación de Meta, integración directa con n8n |
 | Email opcional | Email obligatorio (siempre al reservar) | Mejor UX: cliente recibe confirmación inmediata + recordatorio 24h |

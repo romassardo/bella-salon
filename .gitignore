@@ -48,7 +48,8 @@ supabase/.temp
 # vercel
 .vercel/
 
-# claude code (sesiones locales, agentes, settings personales)
+# local tooling / agents / specs internas
 .claude/
+docs/superpowers/
 
 .vercel
